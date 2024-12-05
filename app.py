@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import logging
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from services.market_data import fetch_market_data
+from services.market_data import fetch_market_data, generate_market_charts
 from services.news import fetch_news
 from services.sentiment import analyze_sentiment
 from services.report import generate_report
@@ -37,7 +37,7 @@ setup_logging()
 
 st.set_page_config(
     page_title="Financial News Reports",
-    page_icon="📈",
+    page_icon="",
     layout="wide"
 )
 
@@ -92,7 +92,7 @@ def save_category_summary(category, reports_info):
 
 def main():
     logging.info("Starting Financial News Reports application")
-    st.title("📈 Financial News Reports")
+    st.title(" Financial News Reports")
     
     # Sidebar
     st.sidebar.header("Portfolio Management")
@@ -141,12 +141,62 @@ def main():
             with st.spinner("Analyzing market data and news..."):
                 progress_bar = st.progress(0)
                 try:
-                    final_state = run_analysis([selected_ticker])
-                    if final_state["error"]:
-                        st.error(f"Error during analysis: {final_state['error']}")
-                    else:
-                        st.markdown(final_state["report"])
-                        logging.info(f"Successfully generated report for {selected_ticker}")
+                    state = {
+                        "messages": [],
+                        "tickers": [selected_ticker],
+                        "news_content": "",
+                        "sentiment": 0.0,
+                        "objectivity": 0.0
+                    }
+                    
+                    # Fetch and analyze data
+                    state = fetch_market_data(state)
+                    state = fetch_news(state)
+                    state = analyze_sentiment(state)
+                    
+                    # Generate and display market charts
+                    market_data = state["market_data"][selected_ticker]
+                    if market_data["history"] is not None:
+                        fig, trend_analysis = generate_market_charts(selected_ticker, market_data["history"])
+                        if fig is not None:
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            if trend_analysis:
+                                st.subheader("Technical Analysis Summary")
+                                col1, col2 = st.columns(2)
+                                
+                                with col1:
+                                    st.markdown(f"""
+                                    **Overall Trend**: {trend_analysis['trend']}  
+                                    **RSI Signal**: {trend_analysis['rsi_signal']} ({trend_analysis['current_rsi']:.1f})  
+                                    **5-Day Momentum**: {trend_analysis['price_momentum']:.1f}%  
+                                    """)
+                                
+                                with col2:
+                                    st.markdown(f"""
+                                    **Volume Trend**: {trend_analysis['volume_trend']}  
+                                    **Current Price**: ${trend_analysis['current_price']:.2f}  
+                                    **Trend Strength**: {trend_analysis['trend_strength']}/5  
+                                    """)
+                                
+                                # Moving Average Analysis
+                                st.markdown("**Moving Average Analysis**")
+                                ma_analysis = trend_analysis['ma_analysis']
+                                ma_text = [
+                                    f"✓ Price > MA20" if ma_analysis['above_ma20'] else "✗ Price < MA20",
+                                    f"✓ Price > MA50" if ma_analysis['above_ma50'] else "✗ Price < MA50",
+                                    f"✓ Price > MA200" if ma_analysis['above_ma200'] else "✗ Price < MA200",
+                                    f"✓ MA20 > MA50" if ma_analysis['ma20_above_ma50'] else "✗ MA20 < MA50",
+                                    f"✓ MA50 > MA200" if ma_analysis['ma50_above_ma200'] else "✗ MA50 < MA200"
+                                ]
+                                st.markdown(" | ".join(ma_text))
+                    
+                    # Create some space after the charts
+                    st.markdown("---")
+                    
+                    # Display the report
+                    st.markdown(generate_report(state))
+                    logging.info(f"Successfully generated report for {selected_ticker}")
                 except Exception as e:
                     logging.error(f"Error generating report for {selected_ticker}: {str(e)}")
                     st.error(f"Error generating report: {str(e)}")
