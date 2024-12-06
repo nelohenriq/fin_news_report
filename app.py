@@ -166,17 +166,20 @@ def main():
                                 col1, col2 = st.columns(2)
                                 
                                 with col1:
+                                    trend_icon = "🔼" if trend_analysis['trend'] == 'Strong Uptrend' else "🔽"
+                                    rsi_icon = "📉" if trend_analysis['rsi_signal'] == 'Bearish' else "📈"
                                     st.markdown(f"""
-                                    **Overall Trend**: {trend_analysis['trend']}  
-                                    **RSI Signal**: {trend_analysis['rsi_signal']} ({trend_analysis['current_rsi']:.1f})  
-                                    **5-Day Momentum**: {trend_analysis['price_momentum']:.1f}%  
+                                    Overall Trend: {trend_icon} {trend_analysis['trend']}  
+                                    RSI Signal: {rsi_icon} {trend_analysis['rsi_signal']} ({trend_analysis['current_rsi']:.1f})  
+                                    5-Day Momentum: {trend_analysis['price_momentum']:.1f}%  
                                     """)
                                 
                                 with col2:
+                                    volume_icon = "📈" if trend_analysis['volume_trend'] == 'Above Average' else "📉"
                                     st.markdown(f"""
-                                    **Volume Trend**: {trend_analysis['volume_trend']}  
-                                    **Current Price**: ${trend_analysis['current_price']:.2f}  
-                                    **Trend Strength**: {trend_analysis['trend_strength']}/5  
+                                    Volume Trend: {volume_icon} {trend_analysis['volume_trend']}  
+                                    Current Price: ${trend_analysis['current_price']:.2f}  
+                                    Trend Strength: {trend_analysis['trend_strength']}/5  
                                     """)
                                 
                                 # Moving Average Analysis
@@ -190,13 +193,24 @@ def main():
                                     f"✓ MA50 > MA200" if ma_analysis['ma50_above_ma200'] else "✗ MA50 < MA200"
                                 ]
                                 st.markdown(" | ".join(ma_text))
+                                st.markdown("\n**Legend:**  ")
+                                st.markdown("✓ = Price is above the moving average, ✗ = Price is below the moving average")
+                                st.markdown("MA20 = 20-day Moving Average, MA50 = 50-day Moving Average, MA200 = 200-day Moving Average")
+                    
+                    # Display the report
+                    report_content = generate_report(state)
+                    st.markdown(report_content)
+                    logging.info(f"Successfully generated report for {selected_ticker}")
+                    
+                    # Option to save the report after displaying it
+                    save_report = st.checkbox("Save Report")
+                    if save_report:
+                        report_filename = save_category_summary(selected_ticker, state["messages"])
+                        st.success(f"Report saved as: {report_filename}")
                     
                     # Create some space after the charts
                     st.markdown("---")
                     
-                    # Display the report
-                    st.markdown(generate_report(state))
-                    logging.info(f"Successfully generated report for {selected_ticker}")
                 except Exception as e:
                     logging.error(f"Error generating report for {selected_ticker}: {str(e)}")
                     st.error(f"Error generating report: {str(e)}")

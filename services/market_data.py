@@ -21,8 +21,8 @@ def fetch_market_data(state):
                 yf_ticker = ticker  # Regular stock ticker
             
             asset = yf.Ticker(yf_ticker)
-            # Get 6 months of historical data for better visualization
-            history = asset.history(period="6mo")
+            # Get 1 year of historical data for better visualization
+            history = asset.history(period="1y")
             
             if history.empty:
                 market_data[ticker] = {
@@ -160,10 +160,22 @@ def generate_market_charts(ticker, history):
             row=1, col=1
         )
 
+        logging.info(f"History DataFrame shape: {history.shape}")
+        logging.info(f"History DataFrame head:\n{history.head()}")
+        
+        logging.info(f"Full History DataFrame:\n{history}")
+        
         # Add moving averages to price chart
         ma20 = history['Close'].rolling(window=20).mean()
         ma50 = history['Close'].rolling(window=50).mean()
         ma200 = history['Close'].rolling(window=200).mean()
+
+        logging.info(f"MA20 DataFrame shape: {ma20.shape}")
+        logging.info(f"MA20 DataFrame head:\n{ma20.head()}")
+        logging.info(f"MA50 DataFrame shape: {ma50.shape}")
+        logging.info(f"MA50 DataFrame head:\n{ma50.head()}")
+        logging.info(f"MA200 DataFrame shape: {ma200.shape}")
+        logging.info(f"MA200 DataFrame head:\n{ma200.head()}")
 
         fig.add_trace(
             go.Scatter(
